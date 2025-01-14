@@ -152,7 +152,7 @@ def prepare_table_data(divisions):
             table_data[key].append([
                 team["team_name"],
                 f"{team["wins"]}-{team["losses"]}",
-                f"{team["win_percent"]:.2f}",
+                f"{team["win_percent"]:.3f}",
                 f"{team["conference_wins"]}-{team["conference_losses"]}",
                 f"{team["division_wins"]}-{team["division_losses"]}"
             ])
