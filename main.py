@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from tabulate import tabulate
 import os
 
+
 @dataclass
 class Team:
     team_name: str
@@ -34,6 +35,11 @@ class Team:
     
     
 def parse_csv() -> dict:
+    """Parses a CSV file containing team data and organizes it into divisions.
+
+    Returns:
+        dict: A dictionary where each key is a division name (str) and the value is a list of Team objects representing teams in that division.
+    """
     # Data file location.
     DATA_PATH = "./data.csv"
     
@@ -75,12 +81,15 @@ def parse_csv() -> dict:
             
             
 def compare_teams(team_1: Team, team_2: Team) -> int:
-    """Returns 1 if team one has better stats, otherwise returns 0.
+    """Compares two teams. 
 
     Args:
         team_1 (Team): The first team to compare.
         team_2 (Team): The second team to compare.
+        
+    Returns 1 if team one has better stats, otherwise returns 0.
     """
+    
     stats = ["win_percent", "conference_win_percent", "division_win_percent"]
     for stat in stats:
         if getattr(team_1, stat) > getattr(team_2, stat):
@@ -99,6 +108,7 @@ def sort_team(team_list: list[Team]) -> list[Team]:
     Returns:
         list[Team]: a sorted list of team objects.
     """
+    
     for i in range(1, len(team_list)):
         # This is the element we want to position in its
         # correct place
@@ -113,8 +123,17 @@ def sort_team(team_list: list[Team]) -> list[Team]:
     return team_list
         
         
-def sort_divisions(division_data: dict[list[Team]]):
-    # Enumerate through the divisions dict.
+def sort_divisions(division_data: dict[list[Team]]) -> dict[list[Team]]:
+    """Sorts divisions from best team to worst.
+
+    Args:
+        division_data (dict[list[Team]]): Divisions dictionary.
+
+    Returns:
+        dict[list[Team]]: Sorted divisions dictionary.
+    """
+
+    # Loop through the divisions dict, sorting each list of teams.
     for key in division_data:
         division_teams = division_data[key]
         division_data[key] = sort_team(division_teams)
@@ -123,10 +142,10 @@ def sort_divisions(division_data: dict[list[Team]]):
 
 
 def prepare_table_data(division_data: dict[list[Team]]) -> dict[list[Team]]:
-    """Prepares the divisions dictionary for table use.
+    """Prepares division data for table use.
 
     Args:
-        divisions (dict[list[Team]]): A dictionary with a key-value pair of a district and a list of teams.
+        divisions (dict[list[Team]]): A dictionary object with a key-value pair of a division and a list of teams in the division.
 
     Returns:
         dict[list[Team]]: A dictionary with 
@@ -141,6 +160,12 @@ def prepare_table_data(division_data: dict[list[Team]]) -> dict[list[Team]]:
 
 
 def print_division_tables(table_data: dict):
+    """Prints the division name and a table of team stats for each division.
+
+    Args:
+        table_data (dict): _description_
+    """
+    
     # Headers
     headers = ["Team Name", "W-L", "Win %", "Conf W-L", "Div W-L"]
     
@@ -151,51 +176,55 @@ def print_division_tables(table_data: dict):
         print()
 
 
-def get_matchups(division_data: dict[list[Team]]):
-    best_teams = []
-    worst_teams = []
-   
-    while len(division_data) > 1:
-        worst_team = None
-        best_team = None
-        for key in division_data:
-            for team in division_data[key]:
-                if team in best_teams + worst_teams:
-                    continue
-                
-                if worst_team is None:
-                    worst_team = team
-                elif team.win_percent < worst_team.win_percent:
-                    worst_team = team
-                        
-                if best_team is None:
-                    best_team = team
-                elif team.win_percent > best_team.win_percent:
-                    best_team = team
-        best_teams.append(best_team)
-        worst_teams.append(worst_team)
-    return [best_teams, worst_teams]
+def get_matchups(divisions_data: dict[list[Team]]) -> list[list[Team]]:
+    """Get team matchups from a dictionary of divisions.
+
+    Args:
+        divisions_data (dict[list[Team]]): The divisions object.
+
+    Returns a list of versus matches.
+    """
+    division_winners = [divisions_data[key][0] for key in divisions_data]
+    extra_teams = sort_team([divisions_data[key][1] for key in divisions_data])[:2]
+    best_teams = sort_team(division_winners + extra_teams)
+
+    matchups = []
+    for _ in range(int(len(divisions_data)/2)+1):
+        matchups.append([best_teams.pop(0).team_name, best_teams.pop(len(best_teams)-1).team_name])
         
+    return matchups
+
         
+def save_matchups(matchups: list[list[Team]]):
+    """Writes formatted matchups to the output file.
+
+    Args:
+        matchups (list[list[Team]]): list of team matchups.
+    """
+    OUTPUT_PATH = "NBACharityHeadCasePlayoffs.txt"
+    with open(OUTPUT_PATH, "w") as f:
+        for match in matchups:
+            f.write(f"{match[0]} vs {match[1]}\n")
         
             
 
 def main():
+    # Clear console.
     os.system('cls')
     
     # Parse the csv and sort by team win rate in each division.
     teams_data = sort_divisions(parse_csv())
     
-    # Parse divisions data so it is usable in a table.
+    # Parse divisions data into usable table data.
     table_data = prepare_table_data(teams_data)
     
     # Print each division's table.
     print_division_tables(table_data)
     
-    print(get_matchups(teams_data))
+    # Get matchups and save them to the output file.
+    matchups = get_matchups(teams_data)
+    save_matchups(matchups)
     
     
-    
-
 if __name__ == "__main__":
     main()
